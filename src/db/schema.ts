@@ -7,7 +7,24 @@ import {
   integer,
   primaryKey,
   numeric,
+  pgEnum,
 } from "drizzle-orm/pg-core";
+
+// ─── Enums ────────────────────────────────────────────────
+export const ingredientCategoryEnum = pgEnum("ingredient_category", [
+  "produce",
+  "dairy",
+  "meat_seafood",
+  "bakery",
+  "frozen",
+  "dry_goods",
+  "beverages",
+  "condiments",
+  "snacks",
+  "other",
+]);
+
+export type IngredientCategory = (typeof ingredientCategoryEnum.enumValues)[number];
 import type { AdapterAccountType } from "next-auth/adapters";
 
 // ─── Users ────────────────────────────────────────────────
@@ -69,8 +86,7 @@ export const verificationTokens = pgTable(
 export const ingredients = pgTable("ingredients", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: varchar("name", { length: 255 }).notNull().unique(),
-  // category enum will be added in Issue #4
-  category: varchar("category", { length: 100 }),
+  category: ingredientCategoryEnum("category").default("other").notNull(),
 });
 
 // ─── Pantry ───────────────────────────────────────────────

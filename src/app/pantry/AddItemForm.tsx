@@ -3,6 +3,19 @@
 import { useRef, useState, useTransition } from "react";
 import { addPantryItem } from "./actions";
 
+const CATEGORIES = [
+  { value: "produce", label: "🥦 Produce" },
+  { value: "dairy", label: "🥛 Dairy" },
+  { value: "meat_seafood", label: "🥩 Meat & Seafood" },
+  { value: "bakery", label: "🍞 Bakery" },
+  { value: "frozen", label: "🧊 Frozen" },
+  { value: "dry_goods", label: "🌾 Dry Goods" },
+  { value: "beverages", label: "🥤 Beverages" },
+  { value: "condiments", label: "🧴 Condiments" },
+  { value: "snacks", label: "🍿 Snacks" },
+  { value: "other", label: "📦 Other" },
+];
+
 export function AddItemForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const [isPending, startTransition] = useTransition();
@@ -22,7 +35,7 @@ export function AddItemForm() {
 
   return (
     <form ref={formRef} action={handleSubmit} className="space-y-3">
-      <div className="flex flex-col gap-3 sm:flex-row">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         {/* Ingredient name */}
         <input
           id="ingredient-name"
@@ -30,8 +43,21 @@ export function AddItemForm() {
           type="text"
           required
           placeholder="Ingredient (e.g. eggs)"
-          className="flex-1 rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-slate-100 placeholder-slate-500 outline-none ring-amber-400 transition focus:border-amber-400 focus:ring-1"
+          className="flex-1 min-w-40 rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-slate-100 placeholder-slate-500 outline-none ring-amber-400 transition focus:border-amber-400 focus:ring-1"
         />
+        {/* Category */}
+        <select
+          id="ingredient-category"
+          name="category"
+          defaultValue="other"
+          className="rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-slate-100 outline-none ring-amber-400 transition focus:border-amber-400 focus:ring-1"
+        >
+          {CATEGORIES.map((c) => (
+            <option key={c.value} value={c.value}>
+              {c.label}
+            </option>
+          ))}
+        </select>
         {/* Quantity — optional */}
         <input
           id="ingredient-quantity"
