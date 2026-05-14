@@ -6,6 +6,7 @@ import {
   text,
   integer,
   primaryKey,
+  numeric,
 } from "drizzle-orm/pg-core";
 import type { AdapterAccountType } from "next-auth/adapters";
 
@@ -63,3 +64,27 @@ export const verificationTokens = pgTable(
   },
   (vt) => [primaryKey({ columns: [vt.identifier, vt.token] })]
 );
+
+// ─── Ingredients ──────────────────────────────────────────
+export const ingredients = pgTable("ingredients", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull().unique(),
+  // category enum will be added in Issue #4
+  category: varchar("category", { length: 100 }),
+});
+
+// ─── Pantry ───────────────────────────────────────────────
+export const pantry = pgTable("pantry", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  ingredientId: uuid("ingredient_id")
+    .notNull()
+    .references(() => ingredients.id, { onDelete: "cascade" }),
+  quantity: numeric("quantity", { precision: 10, scale: 2 }),
+  unit: varchar("unit", { length: 50 }),
+  updatedOn: timestamp("updated_on", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
