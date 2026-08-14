@@ -1,18 +1,35 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getRecipes } from "./actions";
+import { getRecipes, getAllTags } from "./actions";
 
 export const metadata = {
   title: "Recipes — Nekonomi",
   description: "Browse and manage your recipes.",
 };
 
-export default async function RecipesPage() {
+export default async function RecipesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tags?: string }>;
+}) {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const recipes = await getRecipes();
+  const { tags: tagsParam } = await searchParams;
+  const selectedTagIds = tagsParam ? tagsParam.split(",").filter(Boolean) : [];
+
+  const [recipes, allTags] = await Promise.all([
+    getRecipes(selectedTagIds.length > 0 ? selectedTagIds : undefined),
+    getAllTags(),
+  ]);
+
+  function tagHref(tagId: string) {
+    const next = selectedTagIds.includes(tagId)
+      ? selectedTagIds.filter((id) => id !== tagId)
+      : [...selectedTagIds, tagId];
+    return next.length > 0 ? `/recipes?tags=${next.join(",")}` : "/recipes";
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 px-4 py-10 text-slate-100">
@@ -26,7 +43,9 @@ export default async function RecipesPage() {
             </h1>
             <p className="mt-1 text-sm text-slate-400">
               {recipes.length === 0
-                ? "No recipes yet — create your first one below."
+                ? selectedTagIds.length > 0
+                  ? "No recipes match the selected tags."
+                  : "No recipes yet — create your first one below."
                 : `${recipes.length} recipe${recipes.length === 1 ? "" : "s"}`}
             </p>
           </div>
@@ -37,6 +56,36 @@ export default async function RecipesPage() {
             + New Recipe
           </Link>
         </div>
+
+        {/* Tag filter */}
+        {allTags.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            {allTags.map((tag) => {
+              const active = selectedTagIds.includes(tag.id);
+              return (
+                <Link
+                  key={tag.id}
+                  href={tagHref(tag.id)}
+                  className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                    active
+                      ? "bg-amber-400 text-slate-900"
+                      : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+                  }`}
+                >
+                  {tag.name}
+                </Link>
+              );
+            })}
+            {selectedTagIds.length > 0 && (
+              <Link
+                href="/recipes"
+                className="text-xs text-slate-500 transition hover:text-slate-300"
+              >
+                Clear filters
+              </Link>
+            )}
+          </div>
+        )}
 
         {/* Recipe list */}
         {recipes.length > 0 && (
@@ -56,6 +105,18 @@ export default async function RecipesPage() {
                       {recipe.description}
                     </p>
                   )}
+                  {recipe.tags.length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {recipe.tags.map((tag) => (
+                        <span
+                          key={tag.id}
+                          className="rounded-full bg-amber-400/10 px-2 py-0.5 text-[10px] font-medium text-amber-400"
+                        >
+                          {tag.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <span className="shrink-0 text-xs text-slate-500">
                   {recipe.cookTimeMinutes ? `${recipe.cookTimeMinutes} min` : "—"}
@@ -67,7 +128,9 @@ export default async function RecipesPage() {
 
         {recipes.length === 0 && (
           <div className="rounded-2xl border border-dashed border-slate-800 p-10 text-center text-slate-500">
-            You haven't added any recipes yet.
+            {selectedTagIds.length > 0
+              ? "No recipes match the selected tags."
+              : "You haven't added any recipes yet."}
           </div>
         )}
       </div>

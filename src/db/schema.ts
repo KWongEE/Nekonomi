@@ -133,3 +133,23 @@ export const recipeIngredients = pgTable("recipe_ingredients", {
   unit: varchar("unit", { length: 50 }),
   optional: integer("optional").default(0).notNull(), // 0=required, 1=optional
 });
+
+// ─── Tags ─────────────────────────────────────────────────
+export const tags = pgTable("tags", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 100 }).notNull().unique(),
+});
+
+// ─── RecipeTags (M2M) ─────────────────────────────────────
+export const recipeTags = pgTable(
+  "recipe_tags",
+  {
+    recipeId: uuid("recipe_id")
+      .notNull()
+      .references(() => recipes.id, { onDelete: "cascade" }),
+    tagId: uuid("tag_id")
+      .notNull()
+      .references(() => tags.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.recipeId, t.tagId] })]
+);

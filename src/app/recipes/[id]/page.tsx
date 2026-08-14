@@ -2,6 +2,8 @@ import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { getRecipeWithIngredients } from "../actions";
+import { AddTagForm } from "../AddTagForm";
+import { RemoveTagButton } from "../RemoveTagButton";
 
 export default async function RecipeDetailPage({
   params,
@@ -15,7 +17,7 @@ export default async function RecipeDetailPage({
   const result = await getRecipeWithIngredients(id);
   if (!result) notFound();
 
-  const { recipe, ingredients } = result;
+  const { recipe, ingredients, tags } = result;
 
   return (
     <div className="min-h-screen bg-slate-950 px-4 py-10 text-slate-100">
@@ -42,6 +44,20 @@ export default async function RecipeDetailPage({
           {recipe.description && (
             <p className="mt-2 text-sm text-slate-400">{recipe.description}</p>
           )}
+        </div>
+
+        {/* Tags */}
+        <div className="flex flex-wrap items-center gap-2">
+          {tags.map((tag) => (
+            <span
+              key={tag.id}
+              className="flex items-center rounded-full bg-amber-400/10 px-3 py-1 text-xs font-medium text-amber-400"
+            >
+              {tag.name}
+              <RemoveTagButton recipeId={recipe.id} tagId={tag.id} />
+            </span>
+          ))}
+          <AddTagForm recipeId={recipe.id} />
         </div>
 
         {/* Ingredients */}
