@@ -3,6 +3,9 @@ import { redirect } from "next/navigation";
 import { getMyHousehold } from "./actions";
 import { CreateHouseholdForm } from "./CreateHouseholdForm";
 import { JoinHouseholdForm } from "./JoinHouseholdForm";
+import { RegenerateCodeButton } from "./RegenerateCodeButton";
+import { RemoveMemberButton } from "./RemoveMemberButton";
+import { LeaveHouseholdButton } from "./LeaveHouseholdButton";
 
 export const metadata = {
   title: "Household — Nekonomi",
@@ -12,6 +15,7 @@ export const metadata = {
 export default async function HouseholdPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
+  const myUserId = session.user.id;
 
   const my = await getMyHousehold();
 
@@ -65,6 +69,9 @@ export default async function HouseholdPage() {
                     Share this code — anyone who enters it on their own Join Household screen
                     gets added.
                   </p>
+                  <div className="mt-3">
+                    <RegenerateCodeButton />
+                  </div>
                 </div>
               )}
             </div>
@@ -93,9 +100,14 @@ export default async function HouseholdPage() {
                     </p>
                     {member.name && <p className="text-xs text-slate-500">{member.email}</p>}
                   </div>
+                  {my.isCreator && member.id !== myUserId && (
+                    <RemoveMemberButton memberId={member.id} />
+                  )}
                 </div>
               ))}
             </div>
+
+            <LeaveHouseholdButton />
           </>
         )}
       </div>

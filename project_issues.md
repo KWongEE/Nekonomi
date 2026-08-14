@@ -217,3 +217,19 @@ Every existing pantry/recipe/grocery-list query switches from "belongs to me" to
 
 ### Blocked by
 - Issue #13
+
+---
+
+## Issue #15: Household Management
+
+### What to build
+Once in a household, `/household` shows its members, the invite code, and management controls: the creator can view/regenerate the invite code and remove members; any member can leave. Add a Household card to the home page nav hub.
+
+### Acceptance criteria
+- [ ] `/household` lists current members when the user is in one.
+- [ ] Household creator can view and regenerate the invite code, and remove other members.
+- [ ] Any member (including the creator) can leave; if the creator leaves while others remain, they're blocked with a clear message rather than leaving the household without an admin.
+- [ ] Home page links to `/household`.
+
+### Blocked by
+- Issue #13

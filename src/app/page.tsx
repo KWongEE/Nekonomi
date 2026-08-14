@@ -26,6 +26,12 @@ const FEATURES = [
     label: "Grocery List",
     description: "See what's missing for your planned meals",
   },
+  {
+    href: "/household",
+    icon: "🏠",
+    label: "Household",
+    description: "Share your pantry, recipes, and grocery list with others",
+  },
 ];
 
 export default async function Home() {

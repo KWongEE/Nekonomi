@@ -91,3 +91,52 @@ export async function joinHousehold(rawCode: string) {
 
   revalidateHouseholdScopedPaths();
 }
+
+// ─── Regenerate the invite code (creator only) ──────────────────────
+export async function regenerateInviteCode() {
+  const my = await getMyHousehold();
+  if (!my) throw new Error("You're not in a household");
+  if (!my.isCreator) throw new Error("Only the household creator can regenerate the invite code");
+
+  await db
+    .update(households)
+    .set({ inviteCode: generateInviteCode() })
+    .where(eq(households.id, my.household.id));
+
+  revalidatePath("/household");
+}
+
+// ─── Remove another member (creator only) ───────────────────────────
+export async function removeMember(memberUserId: string) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Not authenticated");
+
+  const my = await getMyHousehold();
+  if (!my) throw new Error("You're not in a household");
+  if (!my.isCreator) throw new Error("Only the household creator can remove members");
+  if (memberUserId === session.user.id) throw new Error("Use leave instead of removing yourself");
+  if (!my.members.some((m) => m.id === memberUserId)) throw new Error("That person isn't in your household");
+
+  await db.update(users).set({ householdId: null }).where(eq(users.id, memberUserId));
+
+  revalidateHouseholdScopedPaths();
+}
+
+// ─── Leave the household ─────────────────────────────────────────────
+export async function leaveHousehold() {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Not authenticated");
+
+  const my = await getMyHousehold();
+  if (!my) throw new Error("You're not in a household");
+
+  if (my.isCreator && my.members.length > 1) {
+    throw new Error(
+      "Remove all other members before leaving, so the household isn't left without an admin"
+    );
+  }
+
+  await db.update(users).set({ householdId: null }).where(eq(users.id, session.user.id));
+
+  revalidateHouseholdScopedPaths();
+}
