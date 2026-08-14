@@ -17,6 +17,9 @@
 /.next/
 /out/
 
+# serwist service worker (regenerated from src/app/sw.ts on every build)
+/public/sw.js
+
 # production
 /build
 
