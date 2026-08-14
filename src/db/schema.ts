@@ -8,6 +8,7 @@ import {
   primaryKey,
   numeric,
   pgEnum,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 
 // ─── Enums ────────────────────────────────────────────────
@@ -36,6 +37,25 @@ export const users = pgTable("users", {
   email: text("email").unique(),
   emailVerified: timestamp("emailVerified", { mode: "date" }),
   image: text("image"),
+  // Nullable: a user isn't required to be in a household. Visibility for
+  // pantry/recipes/grocery_list is derived live from this column at query
+  // time — those tables are not themselves household-scoped.
+  householdId: uuid("household_id").references((): AnyPgColumn => households.id, {
+    onDelete: "set null",
+  }),
+  createdOn: timestamp("created_on", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+// ─── Households ───────────────────────────────────────────
+export const households = pgTable("households", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  createdBy: text("created_by")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  inviteCode: varchar("invite_code", { length: 12 }).notNull().unique(),
   createdOn: timestamp("created_on", { withTimezone: true })
     .defaultNow()
     .notNull(),

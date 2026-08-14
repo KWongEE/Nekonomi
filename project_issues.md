@@ -186,3 +186,18 @@ Add a many-to-many "store" tag on ingredients (e.g., "Asian Market", "Costco") s
 
 ### Blocked by
 - None
+
+---
+
+## Issue #13: Household Creation & Joining
+
+### What to build
+Introduce a "household" concept: a group of users who will share pantry, recipes, and grocery list data. A `households` table plus a nullable `household_id` on `users`. A user with no household sees a create-or-join screen at `/household`; creating one generates a persistent, reusable invite code, and joining means entering someone else's code.
+
+### Acceptance criteria
+- [ ] `households` schema (id, name, created_by, invite_code) and `users.household_id` are migrated.
+- [ ] A user with no household can create one (becomes its creator) or join one via an invite code.
+- [ ] A user already in a household cannot create or join another without leaving first.
+
+### Blocked by
+- None
