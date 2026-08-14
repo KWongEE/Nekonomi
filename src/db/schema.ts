@@ -104,3 +104,32 @@ export const pantry = pgTable("pantry", {
     .defaultNow()
     .notNull(),
 });
+
+// ─── Recipes ──────────────────────────────────────────────
+export const recipes = pgTable("recipes", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  instructions: text("instructions"),
+  cookTimeMinutes: integer("cook_time_minutes"),
+  createdOn: timestamp("created_on", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+// ─── RecipeIngredients (M2M) ──────────────────────────────
+export const recipeIngredients = pgTable("recipe_ingredients", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  recipeId: uuid("recipe_id")
+    .notNull()
+    .references(() => recipes.id, { onDelete: "cascade" }),
+  ingredientId: uuid("ingredient_id")
+    .notNull()
+    .references(() => ingredients.id, { onDelete: "cascade" }),
+  quantity: numeric("quantity", { precision: 10, scale: 2 }),
+  unit: varchar("unit", { length: 50 }),
+  optional: integer("optional").default(0).notNull(), // 0=required, 1=optional
+});

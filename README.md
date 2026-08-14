@@ -43,6 +43,7 @@ Nekonomi is built as a **Mobile-first Progressive Web App (PWA)** to avoid dual 
 - **Database:** PostgreSQL (Neon)
 - **ORM:** Drizzle ORM
 - **Authentication:** NextAuth.js (Google OAuth)
+- **Tools** AntiGravity, Claude, Gemini
 
 ### Key Architectural Decisions
 - **Matching Engine:** Starts with pure rule-based SQL queries to calculate match percentage against pantry inventory (Boolean matching based on presence, ignoring fractional unit conversions for the MVP).
