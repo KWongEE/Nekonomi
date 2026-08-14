@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { getGroceryList } from "./actions";
 import { CheckoffCheckbox } from "./CheckoffCheckbox";
+import { AddGroceryItemForm } from "./AddGroceryItemForm";
 import type { IngredientCategory } from "@/db/schema";
 
 export const metadata = {
@@ -55,9 +56,17 @@ export default async function GroceryListPage() {
           </h1>
           <p className="mt-1 text-sm text-slate-400">
             {items.length === 0
-              ? "Nothing on your list — plan a meal to get started."
+              ? "Nothing on your list — plan a meal or add something below."
               : `${items.length} item${items.length === 1 ? "" : "s"} across ${activeCategories.length} aisle${activeCategories.length === 1 ? "" : "s"}`}
           </p>
+        </div>
+
+        {/* Manually add an item */}
+        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-slate-400">
+            Add Item
+          </h2>
+          <AddGroceryItemForm />
         </div>
 
         {/* Grocery list grouped by category */}

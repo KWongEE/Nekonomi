@@ -156,3 +156,18 @@ Replace the default Next.js scaffold content on the home page (`/`) with a real 
 
 ### Blocked by
 - None — all linked features (Issues #1–#9) are complete.
+
+---
+
+## Issue #11: Manually Add Items to Grocery List
+
+### What to build
+Let a user add an ingredient directly to their grocery list from the `/grocery` page, independent of "Plan this Meal" — for restocking, forgotten items, or anything not tied to a recipe.
+
+### Acceptance criteria
+- [ ] User can type an ingredient name (plus optional quantity/unit) and add it to the grocery list from `/grocery`.
+- [ ] Adding an ingredient that's already pending on the list doesn't create a duplicate row.
+- [ ] Unrecognized ingredient names are created on the fly (same get-or-create convention used everywhere else).
+
+### Blocked by
+- None
