@@ -5,6 +5,8 @@
 // Usage (run from the project root so DATABASE_URL resolves via .env.local):
 //   node .claude/skills/run-nekonomi/seed-test-session.mjs                 seed: create/reuse test user + session, print SESSION_TOKEN
 //   node .claude/skills/run-nekonomi/seed-test-session.mjs --cleanup       remove all data owned by the test user, then the user
+//   node .claude/skills/run-nekonomi/seed-test-session.mjs --user=b        seed a SECOND independent test user (for household/sharing tests)
+//   node .claude/skills/run-nekonomi/seed-test-session.mjs --user=b --cleanup
 
 import dotenv from "dotenv";
 import postgres from "postgres";
@@ -12,7 +14,10 @@ import crypto from "node:crypto";
 
 dotenv.config({ path: ".env.local" });
 
-const TEST_EMAIL = "dev-smoketest@nekonomi.local";
+const userArg = process.argv.find((a) => a.startsWith("--user="));
+const userSlot = userArg ? userArg.split("=")[1] : "a";
+const TEST_EMAIL =
+  userSlot === "a" ? "dev-smoketest@nekonomi.local" : `dev-smoketest-${userSlot}@nekonomi.local`;
 
 if (!process.env.DATABASE_URL) {
   console.error("DATABASE_URL not set — run this from the project root (.env.local not found).");
@@ -24,7 +29,7 @@ const sql = postgres(process.env.DATABASE_URL, { max: 1 });
 async function cleanup() {
   const [user] = await sql`select id from users where email = ${TEST_EMAIL}`;
   if (!user) {
-    console.log("No test user found — nothing to clean up.");
+    console.log(`No test user (slot: ${userSlot}) found — nothing to clean up.`);
     return;
   }
   const recipeIds = (
@@ -37,8 +42,13 @@ async function cleanup() {
   await sql`delete from pantry where user_id = ${user.id}`;
   await sql`delete from grocery_list where user_id = ${user.id}`;
   await sql`delete from sessions where "userId" = ${user.id}`;
+  // Deleting the user cascades: any household they created gets deleted
+  // (households.created_by -> cascade), which in turn sets any remaining
+  // member's household_id to null (users.household_id -> set null).
   await sql`delete from users where id = ${user.id}`;
-  console.log(`Cleaned up ${recipeIds.length} recipe(s), pantry items, and the test user.`);
+  console.log(
+    `Cleaned up ${recipeIds.length} recipe(s), pantry items, and test user (slot: ${userSlot}).`
+  );
 }
 
 async function seed() {
@@ -46,7 +56,7 @@ async function seed() {
   if (!user) {
     [user] = await sql`
       insert into users (id, name, email, created_on)
-      values (${crypto.randomUUID()}, 'Smoke Test', ${TEST_EMAIL}, now())
+      values (${crypto.randomUUID()}, ${`Smoke Test ${userSlot.toUpperCase()}`}, ${TEST_EMAIL}, now())
       returning id
     `;
   }
@@ -61,6 +71,7 @@ async function seed() {
     values (${sessionToken}, ${user.id}, ${expires})
   `;
 
+  console.log(`USER_SLOT=${userSlot}`);
   console.log(`USER_ID=${user.id}`);
   console.log(`SESSION_TOKEN=${sessionToken}`);
   console.log(

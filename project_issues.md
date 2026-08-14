@@ -201,3 +201,19 @@ Introduce a "household" concept: a group of users who will share pantry, recipes
 
 ### Blocked by
 - None
+
+---
+
+## Issue #14: Household-Scoped Data Sharing
+
+### What to build
+Every existing pantry/recipe/grocery-list query switches from "belongs to me" to "belongs to anyone in my household" (derived live from `users.household_id`, no schema changes to those tables). Writes still record the actual acting user for attribution; reads and permission checks become household-wide.
+
+### Acceptance criteria
+- [ ] Pantry, recipe, and grocery-list reads show every household member's data, not just the caller's.
+- [ ] Any household member can edit/remove/tag/check-off any item, regardless of who originally added it.
+- [ ] Duplicate-prevention (pantry upsert, grocery dedup, "already owned" checks in Plan-a-Meal and checkoff) considers the whole household, not just the caller.
+- [ ] A user with no household keeps today's solo behavior unchanged.
+
+### Blocked by
+- Issue #13

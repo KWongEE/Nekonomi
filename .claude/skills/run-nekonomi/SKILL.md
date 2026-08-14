@@ -54,6 +54,19 @@ await context.addCookies([{
 }]);
 ```
 
+**Testing household/sharing features needs two independent users** — pass
+`--user=b` to seed a second one alongside the default:
+
+```bash
+node .claude/skills/run-nekonomi/seed-test-session.mjs           # user A (dev-smoketest@nekonomi.local)
+node .claude/skills/run-nekonomi/seed-test-session.mjs --user=b  # user B (dev-smoketest-b@nekonomi.local)
+```
+
+Give each its own Playwright `browser.newContext()` (separate cookie jars),
+and clean up both (`--cleanup` and `--user=b --cleanup`) afterward. Deleting
+a user cascades to any household they created and to their membership in
+others, so no separate household cleanup step is needed.
+
 **Always clean up afterward** — this writes to the real Neon DB
 (`DATABASE_URL` in `.env.local`), not a local/test database:
 

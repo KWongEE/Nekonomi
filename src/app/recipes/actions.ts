@@ -7,6 +7,7 @@ import { ingredients, recipes, recipeIngredients, tags, recipeTags, pantry, groc
 import { scoreRecipe } from "./scoring";
 import type { IngredientCategory } from "@/db/schema";
 import { eq, and, inArray, sql } from "drizzle-orm";
+import { getHouseholdMemberIds } from "@/lib/household";
 
 export type RecipeIngredientInput = {
   name: string;
@@ -76,19 +77,19 @@ export async function createRecipe(input: CreateRecipeInput) {
   return recipe;
 }
 
-// ─── Get all recipes for the current user, optionally filtered by ────
-// tags — a recipe must carry ALL of tagIds to match (AND, not OR).
+// ─── Get all recipes for the current user's household, optionally ────
+// filtered by tags — a recipe must carry ALL of tagIds to match (AND, not OR).
 export async function getRecipes(tagIds?: string[]) {
   const session = await auth();
   if (!session?.user?.id) return [];
-  const userId = session.user.id;
+  const memberIds = await getHouseholdMemberIds(session.user.id);
 
   let recipeRows;
   if (!tagIds || tagIds.length === 0) {
     recipeRows = await db
       .select()
       .from(recipes)
-      .where(eq(recipes.userId, userId))
+      .where(inArray(recipes.userId, memberIds))
       .orderBy(recipes.name);
   } else {
     const matches = await db
@@ -104,7 +105,7 @@ export async function getRecipes(tagIds?: string[]) {
     recipeRows = await db
       .select()
       .from(recipes)
-      .where(and(eq(recipes.userId, userId), inArray(recipes.id, matchingIds)))
+      .where(and(inArray(recipes.userId, memberIds), inArray(recipes.id, matchingIds)))
       .orderBy(recipes.name);
   }
 
@@ -124,18 +125,22 @@ export async function getRecipes(tagIds?: string[]) {
   }
 
   // Availability Score: what fraction of each recipe's REQUIRED ingredients
-  // (optional ones excluded) are in the user's pantry. Counted here in one
-  // grouped query; the percentage math itself lives in the pure scoreRecipe().
+  // (optional ones excluded) are in the household's shared pantry. Counted
+  // here in one grouped query; the percentage math itself lives in the pure
+  // scoreRecipe(). Counts are DISTINCT on recipe_ingredients.id because the
+  // pantry join can now fan out — two household members can each already
+  // own the same ingredient (e.g. from before they merged households), and
+  // a plain count(*) would double-count that ingredient as "owned".
   const countRows = await db
     .select({
       recipeId: recipeIngredients.recipeId,
-      totalRequired: sql<number>`count(*) filter (where ${recipeIngredients.optional} = 0)`,
-      ownedRequired: sql<number>`count(*) filter (where ${recipeIngredients.optional} = 0 and ${pantry.id} is not null)`,
+      totalRequired: sql<number>`count(distinct ${recipeIngredients.id}) filter (where ${recipeIngredients.optional} = 0)`,
+      ownedRequired: sql<number>`count(distinct ${recipeIngredients.id}) filter (where ${recipeIngredients.optional} = 0 and ${pantry.id} is not null)`,
     })
     .from(recipeIngredients)
     .leftJoin(
       pantry,
-      and(eq(pantry.ingredientId, recipeIngredients.ingredientId), eq(pantry.userId, userId))
+      and(eq(pantry.ingredientId, recipeIngredients.ingredientId), inArray(pantry.userId, memberIds))
     )
     .where(inArray(recipeIngredients.recipeId, recipeRows.map((r) => r.id)))
     .groupBy(recipeIngredients.recipeId);
@@ -158,14 +163,15 @@ export async function getRecipes(tagIds?: string[]) {
 export async function getRecipeWithIngredients(recipeId: string) {
   const session = await auth();
   if (!session?.user?.id) return null;
+  const memberIds = await getHouseholdMemberIds(session.user.id);
 
   const [recipe] = await db
     .select()
     .from(recipes)
-    .where(eq(recipes.id, recipeId))
+    .where(and(eq(recipes.id, recipeId), inArray(recipes.userId, memberIds)))
     .limit(1);
 
-  if (!recipe || recipe.userId !== session.user.id) return null;
+  if (!recipe) return null;
 
   const items = await db
     .select({
@@ -196,11 +202,14 @@ export async function getAllTags() {
   return db.select().from(tags).orderBy(tags.name);
 }
 
+// "Owns" here means "belongs to someone in the caller's household" — any
+// household member has equal read/write access, not just the creator.
 async function assertOwnsRecipe(recipeId: string, userId: string) {
+  const memberIds = await getHouseholdMemberIds(userId);
   const [recipe] = await db
     .select({ id: recipes.id })
     .from(recipes)
-    .where(and(eq(recipes.id, recipeId), eq(recipes.userId, userId)))
+    .where(and(eq(recipes.id, recipeId), inArray(recipes.userId, memberIds)))
     .limit(1);
   if (!recipe) throw new Error("Recipe not found");
 }
@@ -249,6 +258,7 @@ export async function planMeal(recipeId: string) {
   if (!session?.user?.id) throw new Error("Not authenticated");
   const userId = session.user.id;
   await assertOwnsRecipe(recipeId, userId);
+  const memberIds = await getHouseholdMemberIds(userId);
 
   const required = await db
     .select({
@@ -262,13 +272,13 @@ export async function planMeal(recipeId: string) {
   const owned = await db
     .select({ ingredientId: pantry.ingredientId })
     .from(pantry)
-    .where(eq(pantry.userId, userId));
+    .where(inArray(pantry.userId, memberIds));
   const ownedIds = new Set(owned.map((o) => o.ingredientId));
 
   const pending = await db
     .select({ ingredientId: groceryList.ingredientId })
     .from(groceryList)
-    .where(and(eq(groceryList.userId, userId), eq(groceryList.status, "pending")));
+    .where(and(inArray(groceryList.userId, memberIds), eq(groceryList.status, "pending")));
   const pendingIds = new Set(pending.map((p) => p.ingredientId));
 
   const missing = required.filter(

@@ -7,6 +7,7 @@ import { groceryList, ingredients, stores, ingredientStores } from "@/db/schema"
 import type { IngredientCategory } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { migrateGroceryItemToPantry } from "./pipeline";
+import { getHouseholdMemberIds } from "@/lib/household";
 
 // ─── Get the current user's pending grocery list items, optionally ──
 // filtered by store — matches ANY selected store (OR), since picking
@@ -15,7 +16,7 @@ import { migrateGroceryItemToPantry } from "./pipeline";
 export async function getGroceryList(storeIds?: string[]) {
   const session = await auth();
   if (!session?.user?.id) return [];
-  const userId = session.user.id;
+  const memberIds = await getHouseholdMemberIds(session.user.id);
 
   let matchingIngredientIds: string[] | null = null;
   if (storeIds && storeIds.length > 0) {
@@ -27,7 +28,7 @@ export async function getGroceryList(storeIds?: string[]) {
     if (matchingIngredientIds.length === 0) return [];
   }
 
-  const conditions = [eq(groceryList.userId, userId), eq(groceryList.status, "pending")];
+  const conditions = [inArray(groceryList.userId, memberIds), eq(groceryList.status, "pending")];
   if (matchingIngredientIds) conditions.push(inArray(groceryList.ingredientId, matchingIngredientIds));
 
   const items = await db
@@ -81,12 +82,13 @@ export async function addGroceryItem(
     .onConflictDoNothing({ target: ingredients.name });
   const [ingredient] = await db.select().from(ingredients).where(eq(ingredients.name, name)).limit(1);
 
+  const memberIds = await getHouseholdMemberIds(userId);
   const [existingPending] = await db
     .select({ id: groceryList.id })
     .from(groceryList)
     .where(
       and(
-        eq(groceryList.userId, userId),
+        inArray(groceryList.userId, memberIds),
         eq(groceryList.ingredientId, ingredient.id),
         eq(groceryList.status, "pending")
       )

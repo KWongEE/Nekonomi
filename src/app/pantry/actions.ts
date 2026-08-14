@@ -5,7 +5,8 @@ import { auth } from "@/auth";
 import { db } from "@/db";
 import { ingredients, pantry } from "@/db/schema";
 import type { IngredientCategory } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
+import { getHouseholdMemberIds } from "@/lib/household";
 
 // ─── Add a pantry item ────────────────────────────────────
 export async function addPantryItem(formData: FormData) {
@@ -26,13 +27,14 @@ export async function addPantryItem(formData: FormData) {
     .onConflictDoUpdate({ target: ingredients.name, set: { category } })
     .returning();
 
-  // Check if this user already has this ingredient in their pantry
+  // Check if anyone in the household already has this ingredient in the pantry
+  const memberIds = await getHouseholdMemberIds(session.user.id);
   const existing = await db
     .select()
     .from(pantry)
     .where(
       and(
-        eq(pantry.userId, session.user.id),
+        inArray(pantry.userId, memberIds),
         eq(pantry.ingredientId, ingredient.id)
       )
     )
@@ -54,10 +56,12 @@ export async function addPantryItem(formData: FormData) {
   revalidatePath("/pantry");
 }
 
-// ─── Get pantry items for the current user ────────────────
+// ─── Get pantry items for the current user's household ────
 export async function getPantryItems() {
   const session = await auth();
   if (!session?.user?.id) return [];
+
+  const memberIds = await getHouseholdMemberIds(session.user.id);
 
   const items = await db
     .select({
@@ -71,20 +75,21 @@ export async function getPantryItems() {
     })
     .from(pantry)
     .innerJoin(ingredients, eq(pantry.ingredientId, ingredients.id))
-    .where(eq(pantry.userId, session.user.id))
+    .where(inArray(pantry.userId, memberIds))
     .orderBy(ingredients.name);
 
   return items;
 }
 
-// ─── Remove a pantry item ─────────────────────────────────
+// ─── Remove a pantry item — any household member can remove any item ───
 export async function removePantryItem(pantryId: string) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Not authenticated");
 
+  const memberIds = await getHouseholdMemberIds(session.user.id);
   await db
     .delete(pantry)
-    .where(and(eq(pantry.id, pantryId), eq(pantry.userId, session.user.id)));
+    .where(and(eq(pantry.id, pantryId), inArray(pantry.userId, memberIds)));
 
   revalidatePath("/pantry");
 }

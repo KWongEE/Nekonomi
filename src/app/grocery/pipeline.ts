@@ -5,13 +5,16 @@
 // the integration tests import.
 import { db } from "@/db";
 import { pantry, groceryList } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
+import { getHouseholdMemberIds } from "@/lib/household";
 
 export async function migrateGroceryItemToPantry(groceryItemId: string, userId: string) {
+  const memberIds = await getHouseholdMemberIds(userId);
+
   const [item] = await db
     .select()
     .from(groceryList)
-    .where(and(eq(groceryList.id, groceryItemId), eq(groceryList.userId, userId)))
+    .where(and(eq(groceryList.id, groceryItemId), inArray(groceryList.userId, memberIds)))
     .limit(1);
 
   if (!item) throw new Error("Grocery item not found");
@@ -22,7 +25,7 @@ export async function migrateGroceryItemToPantry(groceryItemId: string, userId: 
   const [existingPantryRow] = await db
     .select()
     .from(pantry)
-    .where(and(eq(pantry.userId, userId), eq(pantry.ingredientId, item.ingredientId)))
+    .where(and(inArray(pantry.userId, memberIds), eq(pantry.ingredientId, item.ingredientId)))
     .limit(1);
 
   // Boolean-presence philosophy (same as the rest of the app): if it's
