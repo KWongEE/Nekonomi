@@ -153,3 +153,22 @@ export const recipeTags = pgTable(
   },
   (t) => [primaryKey({ columns: [t.recipeId, t.tagId] })]
 );
+
+// ─── GroceryList ──────────────────────────────────────────
+export const groceryStatusEnum = pgEnum("grocery_status", ["pending", "purchased"]);
+
+export const groceryList = pgTable("grocery_list", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  ingredientId: uuid("ingredient_id")
+    .notNull()
+    .references(() => ingredients.id, { onDelete: "cascade" }),
+  quantity: numeric("quantity", { precision: 10, scale: 2 }),
+  unit: varchar("unit", { length: 50 }),
+  status: groceryStatusEnum("status").default("pending").notNull(),
+  updatedOn: timestamp("updated_on", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});

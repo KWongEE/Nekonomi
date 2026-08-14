@@ -4,6 +4,7 @@ import Link from "next/link";
 import { getRecipeWithIngredients } from "../actions";
 import { AddTagForm } from "../AddTagForm";
 import { RemoveTagButton } from "../RemoveTagButton";
+import { PlanMealButton } from "../PlanMealButton";
 
 export default async function RecipeDetailPage({
   params,
@@ -105,6 +106,8 @@ export default async function RecipeDetailPage({
             </p>
           </div>
         )}
+
+        <PlanMealButton recipeId={recipe.id} />
       </div>
     </div>
   );

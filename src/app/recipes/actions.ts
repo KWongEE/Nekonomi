@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { ingredients, recipes, recipeIngredients, tags, recipeTags, pantry } from "@/db/schema";
+import { ingredients, recipes, recipeIngredients, tags, recipeTags, pantry, groceryList } from "@/db/schema";
 import { scoreRecipe } from "./scoring";
 import type { IngredientCategory } from "@/db/schema";
 import { eq, and, inArray, sql } from "drizzle-orm";
@@ -238,4 +238,53 @@ export async function removeTagFromRecipe(recipeId: string, tagId: string) {
 
   revalidatePath(`/recipes/${recipeId}`);
   revalidatePath("/recipes");
+}
+
+// ─── Plan a meal: push this recipe's missing ingredients (required AND
+// optional — planning to shop means wanting the nice-to-haves too) onto
+// the grocery list. Accumulates across recipes: an ingredient already
+// pending on the list is left alone rather than duplicated.
+export async function planMeal(recipeId: string) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Not authenticated");
+  const userId = session.user.id;
+  await assertOwnsRecipe(recipeId, userId);
+
+  const required = await db
+    .select({
+      ingredientId: recipeIngredients.ingredientId,
+      quantity: recipeIngredients.quantity,
+      unit: recipeIngredients.unit,
+    })
+    .from(recipeIngredients)
+    .where(eq(recipeIngredients.recipeId, recipeId));
+
+  const owned = await db
+    .select({ ingredientId: pantry.ingredientId })
+    .from(pantry)
+    .where(eq(pantry.userId, userId));
+  const ownedIds = new Set(owned.map((o) => o.ingredientId));
+
+  const pending = await db
+    .select({ ingredientId: groceryList.ingredientId })
+    .from(groceryList)
+    .where(and(eq(groceryList.userId, userId), eq(groceryList.status, "pending")));
+  const pendingIds = new Set(pending.map((p) => p.ingredientId));
+
+  const missing = required.filter(
+    (r) => !ownedIds.has(r.ingredientId) && !pendingIds.has(r.ingredientId)
+  );
+
+  if (missing.length > 0) {
+    await db.insert(groceryList).values(
+      missing.map((m) => ({
+        userId,
+        ingredientId: m.ingredientId,
+        quantity: m.quantity,
+        unit: m.unit,
+      }))
+    );
+  }
+
+  revalidatePath("/grocery");
 }
