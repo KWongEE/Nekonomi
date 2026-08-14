@@ -140,3 +140,19 @@ The data pipeline for grocery shopping. As the user checks items off their groce
 
 ### Blocked by
 - Issue #8
+
+---
+
+## Issue #10: Home Page Navigation Hub
+
+### What to build
+Replace the default Next.js scaffold content on the home page (`/`) with a real navigation hub linking to the app's core features: Pantry, Recipes, and Grocery List. Should feel like the front door of the app, not a framework starter template.
+
+### Acceptance criteria
+- [ ] Home page no longer shows the Next.js/Vercel boilerplate content.
+- [ ] Authenticated users see clear, tappable links to Pantry, Recipes, and Grocery List.
+- [ ] Layout is mobile-friendly, consistent with the app's mobile-first PWA goal.
+- [ ] Visual style matches the rest of the app (dark background, amber accents).
+
+### Blocked by
+- None — all linked features (Issues #1–#9) are complete.
