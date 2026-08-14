@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { ingredients, recipes, recipeIngredients, tags, recipeTags } from "@/db/schema";
+import { ingredients, recipes, recipeIngredients, tags, recipeTags, pantry } from "@/db/schema";
+import { scoreRecipe } from "./scoring";
 import type { IngredientCategory } from "@/db/schema";
 import { eq, and, inArray, sql } from "drizzle-orm";
 
@@ -122,7 +123,35 @@ export async function getRecipes(tagIds?: string[]) {
     tagsByRecipe.set(row.recipeId, list);
   }
 
-  return recipeRows.map((r) => ({ ...r, tags: tagsByRecipe.get(r.id) ?? [] }));
+  // Availability Score: what fraction of each recipe's REQUIRED ingredients
+  // (optional ones excluded) are in the user's pantry. Counted here in one
+  // grouped query; the percentage math itself lives in the pure scoreRecipe().
+  const countRows = await db
+    .select({
+      recipeId: recipeIngredients.recipeId,
+      totalRequired: sql<number>`count(*) filter (where ${recipeIngredients.optional} = 0)`,
+      ownedRequired: sql<number>`count(*) filter (where ${recipeIngredients.optional} = 0 and ${pantry.id} is not null)`,
+    })
+    .from(recipeIngredients)
+    .leftJoin(
+      pantry,
+      and(eq(pantry.ingredientId, recipeIngredients.ingredientId), eq(pantry.userId, userId))
+    )
+    .where(inArray(recipeIngredients.recipeId, recipeRows.map((r) => r.id)))
+    .groupBy(recipeIngredients.recipeId);
+
+  const scoreByRecipe = new Map<string, number>();
+  for (const row of countRows) {
+    scoreByRecipe.set(row.recipeId, scoreRecipe(Number(row.ownedRequired), Number(row.totalRequired)));
+  }
+
+  return recipeRows
+    .map((r) => ({
+      ...r,
+      tags: tagsByRecipe.get(r.id) ?? [],
+      score: scoreByRecipe.get(r.id) ?? 100, // no required-ingredient rows counted at all -> vacuously 100
+    }))
+    .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
 }
 
 // ─── Get a single recipe with its required ingredients and tags ───

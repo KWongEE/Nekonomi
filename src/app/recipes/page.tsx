@@ -118,9 +118,22 @@ export default async function RecipesPage({
                     </div>
                   )}
                 </div>
-                <span className="shrink-0 text-xs text-slate-500">
-                  {recipe.cookTimeMinutes ? `${recipe.cookTimeMinutes} min` : "—"}
-                </span>
+                <div className="flex shrink-0 flex-col items-end gap-0.5">
+                  <span
+                    className={`text-xs font-semibold ${
+                      recipe.score >= 75
+                        ? "text-amber-400"
+                        : recipe.score >= 40
+                          ? "text-slate-300"
+                          : "text-slate-600"
+                    }`}
+                  >
+                    {recipe.score}% match
+                  </span>
+                  <span className="text-xs text-slate-500">
+                    {recipe.cookTimeMinutes ? `${recipe.cookTimeMinutes} min` : "—"}
+                  </span>
+                </div>
               </Link>
             ))}
           </div>
