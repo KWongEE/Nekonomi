@@ -1,8 +1,11 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { getGroceryList } from "./actions";
+import Link from "next/link";
+import { getGroceryList, getAllStores } from "./actions";
 import { CheckoffCheckbox } from "./CheckoffCheckbox";
 import { AddGroceryItemForm } from "./AddGroceryItemForm";
+import { AddStoreForm } from "./AddStoreForm";
+import { RemoveStoreButton } from "./RemoveStoreButton";
 import type { IngredientCategory } from "@/db/schema";
 
 export const metadata = {
@@ -29,11 +32,28 @@ const CATEGORY_ORDER: IngredientCategory[] = [
   "dry_goods", "beverages", "condiments", "snacks", "other",
 ];
 
-export default async function GroceryListPage() {
+export default async function GroceryListPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ stores?: string }>;
+}) {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const items = await getGroceryList();
+  const { stores: storesParam } = await searchParams;
+  const selectedStoreIds = storesParam ? storesParam.split(",").filter(Boolean) : [];
+
+  const [items, allStores] = await Promise.all([
+    getGroceryList(selectedStoreIds.length > 0 ? selectedStoreIds : undefined),
+    getAllStores(),
+  ]);
+
+  function storeHref(storeId: string) {
+    const next = selectedStoreIds.includes(storeId)
+      ? selectedStoreIds.filter((id) => id !== storeId)
+      : [...selectedStoreIds, storeId];
+    return next.length > 0 ? `/grocery?stores=${next.join(",")}` : "/grocery";
+  }
 
   // Group items by category
   const grouped = items.reduce<Record<string, typeof items>>((acc, item) => {
@@ -56,7 +76,9 @@ export default async function GroceryListPage() {
           </h1>
           <p className="mt-1 text-sm text-slate-400">
             {items.length === 0
-              ? "Nothing on your list — plan a meal or add something below."
+              ? selectedStoreIds.length > 0
+                ? "Nothing matches the selected stores."
+                : "Nothing on your list — plan a meal or add something below."
               : `${items.length} item${items.length === 1 ? "" : "s"} across ${activeCategories.length} aisle${activeCategories.length === 1 ? "" : "s"}`}
           </p>
         </div>
@@ -68,6 +90,36 @@ export default async function GroceryListPage() {
           </h2>
           <AddGroceryItemForm />
         </div>
+
+        {/* Store filter */}
+        {allStores.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            {allStores.map((store) => {
+              const active = selectedStoreIds.includes(store.id);
+              return (
+                <Link
+                  key={store.id}
+                  href={storeHref(store.id)}
+                  className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                    active
+                      ? "bg-amber-400 text-slate-900"
+                      : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+                  }`}
+                >
+                  {store.name}
+                </Link>
+              );
+            })}
+            {selectedStoreIds.length > 0 && (
+              <Link
+                href="/grocery"
+                className="text-xs text-slate-500 transition hover:text-slate-300"
+              >
+                Clear filters
+              </Link>
+            )}
+          </div>
+        )}
 
         {/* Grocery list grouped by category */}
         {activeCategories.map((category) => (
@@ -97,6 +149,18 @@ export default async function GroceryListPage() {
                       {item.quantity ?? "—"} {item.unit ?? ""}
                     </span>
                   </div>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                    {item.stores.map((store) => (
+                      <span
+                        key={store.id}
+                        className="flex items-center rounded-full bg-amber-400/10 px-2 py-0.5 text-[10px] font-medium text-amber-400"
+                      >
+                        {store.name}
+                        <RemoveStoreButton ingredientId={item.ingredientId} storeId={store.id} />
+                      </span>
+                    ))}
+                    <AddStoreForm ingredientId={item.ingredientId} />
+                  </div>
                 </div>
               </div>
             ))}
@@ -105,7 +169,9 @@ export default async function GroceryListPage() {
 
         {items.length === 0 && (
           <div className="rounded-2xl border border-dashed border-slate-800 p-10 text-center text-slate-500">
-            Your grocery list is empty.
+            {selectedStoreIds.length > 0
+              ? "Nothing matches the selected stores."
+              : "Your grocery list is empty."}
           </div>
         )}
       </div>

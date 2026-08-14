@@ -171,3 +171,18 @@ Let a user add an ingredient directly to their grocery list from the `/grocery` 
 
 ### Blocked by
 - None
+
+---
+
+## Issue #12: Tag Ingredients by Store, Filter Grocery List by Store
+
+### What to build
+Add a many-to-many "store" tag on ingredients (e.g., "Asian Market", "Costco") so a user heading to a specific store can filter their grocery list down to just what's relevant there. Tags live on the ingredient (persist across future lists), editable inline from the grocery list page.
+
+### Acceptance criteria
+- [ ] `stores` schema and `ingredient_stores` join table are migrated.
+- [ ] Grocery list page supports adding/removing store tags per ingredient inline.
+- [ ] Grocery list page supports filtering by one or more selected store tags (OR — matches any selected store, not all).
+
+### Blocked by
+- None

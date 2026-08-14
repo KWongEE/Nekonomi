@@ -172,3 +172,23 @@ export const groceryList = pgTable("grocery_list", {
     .defaultNow()
     .notNull(),
 });
+
+// ─── Stores ───────────────────────────────────────────────
+export const stores = pgTable("stores", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 100 }).notNull().unique(),
+});
+
+// ─── IngredientStores (M2M) ───────────────────────────────
+export const ingredientStores = pgTable(
+  "ingredient_stores",
+  {
+    ingredientId: uuid("ingredient_id")
+      .notNull()
+      .references(() => ingredients.id, { onDelete: "cascade" }),
+    storeId: uuid("store_id")
+      .notNull()
+      .references(() => stores.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.ingredientId, t.storeId] })]
+);
