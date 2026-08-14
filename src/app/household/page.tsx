@@ -6,6 +6,7 @@ import { JoinHouseholdForm } from "./JoinHouseholdForm";
 import { RegenerateCodeButton } from "./RegenerateCodeButton";
 import { RemoveMemberButton } from "./RemoveMemberButton";
 import { LeaveHouseholdButton } from "./LeaveHouseholdButton";
+import { HomeLink } from "@/components/HomeLink";
 
 export const metadata = {
   title: "Household — Nekonomi",
@@ -22,6 +23,7 @@ export default async function HouseholdPage() {
   return (
     <div className="min-h-screen bg-slate-950 px-4 py-10 text-slate-100">
       <div className="mx-auto max-w-2xl space-y-8">
+        <HomeLink />
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-50">
             🏠 Household

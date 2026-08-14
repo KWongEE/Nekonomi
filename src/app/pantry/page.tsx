@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getPantryItems } from "./actions";
 import { AddItemForm } from "./AddItemForm";
 import { RemoveButton } from "./RemoveButton";
+import { HomeLink } from "@/components/HomeLink";
 import type { IngredientCategory } from "@/db/schema";
 
 export const metadata = {
@@ -48,6 +49,8 @@ export default async function PantryPage() {
   return (
     <div className="min-h-screen bg-slate-950 px-4 py-10 text-slate-100">
       <div className="mx-auto max-w-2xl space-y-8">
+
+        <HomeLink />
 
         {/* Header */}
         <div className="flex items-center justify-between">

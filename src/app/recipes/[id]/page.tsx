@@ -5,6 +5,7 @@ import { getRecipeWithIngredients } from "../actions";
 import { AddTagForm } from "../AddTagForm";
 import { RemoveTagButton } from "../RemoveTagButton";
 import { PlanMealButton } from "../PlanMealButton";
+import { HomeLink } from "@/components/HomeLink";
 
 export default async function RecipeDetailPage({
   params,
@@ -26,12 +27,16 @@ export default async function RecipeDetailPage({
 
         {/* Header */}
         <div>
-          <Link
-            href="/recipes"
-            className="text-xs text-slate-500 transition hover:text-slate-300"
-          >
-            ← All recipes
-          </Link>
+          <div className="flex items-center gap-2">
+            <HomeLink />
+            <span className="text-slate-700">/</span>
+            <Link
+              href="/recipes"
+              className="text-xs text-slate-500 transition hover:text-slate-300"
+            >
+              All recipes
+            </Link>
+          </div>
           <div className="mt-2 flex items-start justify-between">
             <h1 className="text-2xl font-bold tracking-tight text-slate-50">
               {recipe.name}

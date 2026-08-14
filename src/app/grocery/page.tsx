@@ -6,6 +6,7 @@ import { CheckoffCheckbox } from "./CheckoffCheckbox";
 import { AddGroceryItemForm } from "./AddGroceryItemForm";
 import { AddStoreForm } from "./AddStoreForm";
 import { RemoveStoreButton } from "./RemoveStoreButton";
+import { HomeLink } from "@/components/HomeLink";
 import type { IngredientCategory } from "@/db/schema";
 
 export const metadata = {
@@ -68,6 +69,8 @@ export default async function GroceryListPage({
   return (
     <div className="min-h-screen bg-slate-950 px-4 py-10 text-slate-100">
       <div className="mx-auto max-w-2xl space-y-8">
+
+        <HomeLink />
 
         {/* Header */}
         <div>
