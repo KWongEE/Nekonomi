@@ -35,6 +35,7 @@ async function cleanup() {
   }
   await sql`delete from recipes where user_id = ${user.id}`;
   await sql`delete from pantry where user_id = ${user.id}`;
+  await sql`delete from grocery_list where user_id = ${user.id}`;
   await sql`delete from sessions where "userId" = ${user.id}`;
   await sql`delete from users where id = ${user.id}`;
   console.log(`Cleaned up ${recipeIds.length} recipe(s), pantry items, and the test user.`);

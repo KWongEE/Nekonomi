@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { getGroceryList } from "./actions";
+import { CheckoffCheckbox } from "./CheckoffCheckbox";
 import type { IngredientCategory } from "@/db/schema";
 
 export const metadata = {
@@ -77,6 +78,9 @@ export default async function GroceryListPage() {
                   i !== 0 ? "border-t border-slate-800/60" : ""
                 }`}
               >
+                <div className="pt-0.5">
+                  <CheckoffCheckbox itemId={item.id} />
+                </div>
                 <div className="flex-1">
                   <div className="flex items-baseline justify-between gap-2">
                     <p className="font-medium capitalize text-slate-100">{item.name}</p>
